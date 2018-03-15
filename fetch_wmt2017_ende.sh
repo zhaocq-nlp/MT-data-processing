@@ -74,6 +74,7 @@ ${REPO_DIR}/scripts/input-from-sgm.perl \
 
 
 # tokenize
+echo "Tokenize..."
 cat ${OUTPUT_DIR_DATA}/test/newstest2017.deen.de | \
    ${REPO_DIR}/scripts/normalize-punctuation.perl -l de | \
    ${REPO_DIR}/scripts/tokenizer.perl -a -q -l de -no-escape > ${OUTPUT_DIR}/newstest2017.deen.tok.de
@@ -90,21 +91,55 @@ cat ${OUTPUT_DIR_DATA}/test/newstest2017.ende.en | \
    ${REPO_DIR}/scripts/normalize-punctuation.perl -l en | \
    ${REPO_DIR}/scripts/tokenizer.perl -a -q -l en -no-escape > ${OUTPUT_DIR}/newstest2017.ende.tok.en
 
+
+# filter by length ratio
+echo "Filtering by sentence length ratio..."
+cp ${REPO_DIR}/programs/LenRatioRemover.class .
+java LenRatioRemover ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de 2.0 0.4 ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR_DATA}/train.lenratio.removed
+mv ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR_DATA}/train.tok.de
+mv ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR_DATA}/train.tok.en
+mv ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR}/train.tok.de
+mv ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.en
+rm ./LenRatioRemover.class
+
+# filter ugly sentences
+echo "Filtering ugly sentences..."
+cp ${REPO_DIR}/programs/SpecialSentRemover.class .
+java SpecialSentRemover ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR_DATA}/train.special.removed
+mv ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR_DATA}/train.tok.de.lenrm
+mv ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR_DATA}/train.tok.en.lenrm
+mv ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR}/train.tok.de
+mv ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.en
+rm ./SpecialSentRemover.class
+
+cp ${REPO_DIR}/programs/MergeAndSplit.class ./
+java MergeAndSplit merge ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/merged
+mv ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR_DATA}/train.tok.de.sprm
+mv ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR_DATA}/train.tok.en.sprm
+echo "Sorting and removing duplicated sentences..."
+sort -u ${OUTPUT_DIR}/merged > ${OUTPUT_DIR}/merged.sort
+
+java MergeAndSplit split ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/merged.sort
+rm ${OUTPUT_DIR}/merged.sort ./MergeAndSplit.class ${OUTPUT_DIR}/merge
+
 # the files are already cleaned, we only need to learn BPE
 echo "Learning BPE with merge_ops=${MERGE_OPS}. This may take a while..."
 ${REPO_DIR}/bpe/learn_joint_bpe_and_vocab.py -i ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/train.tok.en \
     --write-vocabulary ${OUTPUT_DIR}/vocab.de ${OUTPUT_DIR}/vocab.en -s ${MERGE_OPS} -o ${OUTPUT_DIR}/bpe.${MERGE_OPS}
 
 echo "Apply bpe..."
-python ${REPO_DIR}/bpe/apply_bpe.py -c ${OUTPUT_DIR}/bpe --vocabulary ${OUTPUT_DIR}/vocab.de --vocabulary-threshold ${BPE_THRESHOLD} \
+python ${REPO_DIR}/bpe/apply_bpe.py -c ${OUTPUT_DIR}/bpe.${MERGE_OPS} --vocabulary ${OUTPUT_DIR}/vocab.de --vocabulary-threshold ${BPE_THRESHOLD} \
     --input ${OUTPUT_DIR}/train.tok.de --output ${OUTPUT_DIR}/train.tok.bpe90k.de
 
-python ${REPO_DIR}/bpe/apply_bpe.py -c ${OUTPUT_DIR}/bpe --vocabulary ${OUTPUT_DIR}/vocab.en --vocabulary-threshold ${BPE_THRESHOLD} \
+python ${REPO_DIR}/bpe/apply_bpe.py -c ${OUTPUT_DIR}/bpe.${MERGE_OPS} --vocabulary ${OUTPUT_DIR}/vocab.en --vocabulary-threshold ${BPE_THRESHOLD} \
     --input ${OUTPUT_DIR}/train.tok.en --output ${OUTPUT_DIR}/train.tok.bpe90k.en
 
 echo "Generate vocabulary..."
 python ${REPO_DIR}/bpe/generate_vocab.py ${OUTPUT_DIR}/train.tok.bpe90k.de --min_frequency ${BPE_THRESHOLD} > ${OUTPUT_DIR}/vocab.bpe90k.de
 python ${REPO_DIR}/bpe/generate_vocab.py ${OUTPUT_DIR}/train.tok.bpe90k.en --min_frequency ${BPE_THRESHOLD} > ${OUTPUT_DIR}/vocab.bpe90k.en
+
+echo "shuffling data..."
+python ${REPO_DIR}/scripts/shuffle.py ${OUTPUT_DIR}/train.tok.de,${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de.shuf,${OUTPUT_DIR}/train.tok.en.shuf
 
 rm -r ${OUTPUT_DIR_DATA}
 
