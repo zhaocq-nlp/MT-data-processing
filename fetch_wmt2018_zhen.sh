@@ -17,7 +17,7 @@ set -e
 
 REPO_DIR=.
 
-OUTPUT_DIR="${1:-wmt17_de_en}"
+OUTPUT_DIR="${1:-wmt18_zh_en}"
 
 MERGE_OPS=90000
 BPE_THRESHOLD=50
@@ -28,13 +28,10 @@ OUTPUT_DIR_DATA="${OUTPUT_DIR}/data"
 mkdir -p $OUTPUT_DIR_DATA
 
 echo "Downloading preprocessed data. This may take a while..."
+curl -o ${OUTPUT_DIR_DATA}/corpus.gz \
+    http://data.statmt.org/wmt18/translation-task/preprocessed/zh-en/corpus.gz
 
-curl -o ${OUTPUT_DIR_DATA}/corpus.tc.de.gz \
-    http://data.statmt.org/wmt17/translation-task/preprocessed/de-en/corpus.tc.de.gz
-
-curl -o ${OUTPUT_DIR_DATA}/corpus.tc.en.gz \
-    http://data.statmt.org/wmt17/translation-task/preprocessed/de-en/corpus.tc.en.gz
-
+exit
 echo "Downloading preprocessed dev data..."
 curl -o ${OUTPUT_DIR_DATA}/dev.tgz \
     http://data.statmt.org/wmt17/translation-task/preprocessed/de-en/dev.tgz
@@ -120,7 +117,7 @@ echo "Sorting and removing duplicated sentences..."
 sort -u ${OUTPUT_DIR}/merged > ${OUTPUT_DIR}/merged.sort
 
 java MergeAndSplit split ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/merged.sort
-rm ${OUTPUT_DIR}/merged.sort ./MergeAndSplit.class ${OUTPUT_DIR}/merged
+rm ${OUTPUT_DIR}/merged.sort ./MergeAndSplit.class ${OUTPUT_DIR}/merge
 
 # the files are already cleaned, we only need to learn BPE
 echo "Learning BPE with merge_ops=${MERGE_OPS}. This may take a while..."
@@ -135,8 +132,8 @@ python ${REPO_DIR}/bpe/apply_bpe.py -c ${OUTPUT_DIR}/bpe.${MERGE_OPS} --vocabula
     --input ${OUTPUT_DIR}/train.tok.en --output ${OUTPUT_DIR}/train.tok.bpe90k.en
 
 echo "Generate vocabulary..."
-python ${REPO_DIR}/bpe/generate_vocab.py ${OUTPUT_DIR}/train.tok.bpe90k.de > ${OUTPUT_DIR}/vocab.bpe90k.all.de
-python ${REPO_DIR}/bpe/generate_vocab.py ${OUTPUT_DIR}/train.tok.bpe90k.en > ${OUTPUT_DIR}/vocab.bpe90k.all.en
+python ${REPO_DIR}/bpe/generate_vocab.py ${OUTPUT_DIR}/train.tok.bpe90k.de --min_frequency ${BPE_THRESHOLD} > ${OUTPUT_DIR}/vocab.bpe90k.de
+python ${REPO_DIR}/bpe/generate_vocab.py ${OUTPUT_DIR}/train.tok.bpe90k.en --min_frequency ${BPE_THRESHOLD} > ${OUTPUT_DIR}/vocab.bpe90k.en
 
 echo "shuffling data..."
 python ${REPO_DIR}/scripts/shuffle.py ${OUTPUT_DIR}/train.tok.de,${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de.shuf,${OUTPUT_DIR}/train.tok.en.shuf
