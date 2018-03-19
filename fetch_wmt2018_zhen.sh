@@ -19,7 +19,7 @@ REPO_DIR=.
 
 OUTPUT_DIR="${1:-wmt18_zh_en}"
 
-MERGE_OPS=90000
+MERGE_OPS=60000
 BPE_THRESHOLD=50
 
 echo "Writing to ${OUTPUT_DIR}. To change this, set the OUTPUT_DIR environment variable."
@@ -31,14 +31,13 @@ echo "Downloading preprocessed data. This may take a while..."
 curl -o ${OUTPUT_DIR_DATA}/corpus.gz \
     http://data.statmt.org/wmt18/translation-task/preprocessed/zh-en/corpus.gz
 
-exit
 echo "Downloading preprocessed dev data..."
 curl -o ${OUTPUT_DIR_DATA}/dev.tgz \
-    http://data.statmt.org/wmt17/translation-task/preprocessed/de-en/dev.tgz
+    http://data.statmt.org/wmt18/translation-task/preprocessed/zh-en/dev.tgz
 
 echo "Downloading test data..."
-curl -o ${OUTPUT_DIR_DATA}/test.tgz \
-    http://data.statmt.org/wmt17/translation-task/test.tgz
+# curl -o ${OUTPUT_DIR_DATA}/test.tgz \
+#    http://data.statmt.org/wmt18/translation-task/test.tgz
 
 echo "Extracting all files..."
 gzip -d ${OUTPUT_DIR_DATA}/corpus.tc.de.gz
@@ -48,45 +47,21 @@ tar -zxvf ${OUTPUT_DIR_DATA}/dev.tgz -C "${OUTPUT_DIR_DATA}/dev"
 tar -zxvf ${OUTPUT_DIR_DATA}/test.tgz -C "${OUTPUT_DIR_DATA}/"
 
 # recover special fields
-perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/corpus.tc.de > ${OUTPUT_DIR}/train.tok.de
-perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/corpus.tc.en > ${OUTPUT_DIR}/train.tok.en
+perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/corpus > ${OUTPUT_DIR}/train.tok
 
-# use newstest2016 as dev set
-perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/dev/newstest2016.tc.en > ${OUTPUT_DIR}/dev.tok.en
-perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/dev/newstest2016.tc.de > ${OUTPUT_DIR}/dev.tok.de
-
-# Convert newstest2017 data into raw text format
-${REPO_DIR}/scripts/input-from-sgm.perl \
-  < ${OUTPUT_DIR_DATA}/test/newstest2017-deen-src.de.sgm \
-  > ${OUTPUT_DIR_DATA}/test/newstest2017.deen.de
-${REPO_DIR}/scripts/input-from-sgm.perl \
-  < ${OUTPUT_DIR_DATA}/test/newstest2017-deen-ref.en.sgm \
-  > ${OUTPUT_DIR_DATA}/test/newstest2017.deen.en
-${REPO_DIR}/scripts/input-from-sgm.perl \
-  < ${OUTPUT_DIR_DATA}/test/newstest2017-ende-src.en.sgm \
-  > ${OUTPUT_DIR_DATA}/test/newstest2017.ende.en
-${REPO_DIR}/scripts/input-from-sgm.perl \
-  < ${OUTPUT_DIR_DATA}/test/newstest2017-ende-ref.de.sgm \
-  > ${OUTPUT_DIR_DATA}/test/newstest2017.ende.de
+# use newsdev2017 as dev set
+perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/dev/newsdev2017.tc.en > ${OUTPUT_DIR}/dev.tok.en
+perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/dev/newsdev2017.tc.zh > ${OUTPUT_DIR}/dev.tok.zh
+perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/dev/newstest2017.tc.en > ${OUTPUT_DIR}/newstest2017.tok.en
+perl ${REPO_DIR}/scripts/deescape-special-chars.perl < ${OUTPUT_DIR_DATA}/dev/newstest2017.tc.zh > ${OUTPUT_DIR}/newstest2017.tok.zh
 
 
-# tokenize
-echo "Tokenize..."
-cat ${OUTPUT_DIR_DATA}/test/newstest2017.deen.de | \
-   ${REPO_DIR}/scripts/normalize-punctuation.perl -l de | \
-   ${REPO_DIR}/scripts/tokenizer.perl -a -q -l de -no-escape > ${OUTPUT_DIR}/newstest2017.deen.tok.de
+cp ${REPO_DIR}/programs/SplitChineseFile.class .
+java SplitChineseFile ${OUTPUT_DIR}/train.tok ${OUTPUT_DIR}/train.tok.zh ${OUTPUT_DIR}/train.tok.en
+rm ./SplitChineseFile.class ${OUTPUT_DIR}/train.tok
 
-cat ${OUTPUT_DIR_DATA}/test/newstest2017.deen.en | \
-   ${REPO_DIR}/scripts/normalize-punctuation.perl -l en | \
-   ${REPO_DIR}/scripts/tokenizer.perl -a -q -l en -no-escape > ${OUTPUT_DIR}/newstest2017.deen.tok.en
+exit
 
-cat ${OUTPUT_DIR_DATA}/test/newstest2017.ende.de | \
-   ${REPO_DIR}/scripts/normalize-punctuation.perl -l de | \
-   ${REPO_DIR}/scripts/tokenizer.perl -a -q -l de -no-escape > ${OUTPUT_DIR}/newstest2017.ende.tok.de
-
-cat ${OUTPUT_DIR_DATA}/test/newstest2017.ende.en | \
-   ${REPO_DIR}/scripts/normalize-punctuation.perl -l en | \
-   ${REPO_DIR}/scripts/tokenizer.perl -a -q -l en -no-escape > ${OUTPUT_DIR}/newstest2017.ende.tok.en
 
 
 # filter by length ratio

@@ -104,13 +104,13 @@ rm ./LenRatioRemover.class
 
 # filter ugly sentences
 echo "Filtering ugly sentences..."
-cp ${REPO_DIR}/programs/SpecialSentRemover.class .
-java SpecialSentRemover ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR_DATA}/train.special.removed
+cp ${REPO_DIR}/programs/SpecialSentRemoverENDE.class .
+java SpecialSentRemoverENDE ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR_DATA}/train.special.removed
 mv ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR_DATA}/train.tok.de.lenrm
 mv ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR_DATA}/train.tok.en.lenrm
 mv ${OUTPUT_DIR}/train.tok.de.rm ${OUTPUT_DIR}/train.tok.de
 mv ${OUTPUT_DIR}/train.tok.en.rm ${OUTPUT_DIR}/train.tok.en
-rm ./SpecialSentRemover.class
+rm ./SpecialSentRemoverENDE.class
 
 cp ${REPO_DIR}/programs/MergeAndSplit.class ./
 java MergeAndSplit merge ${OUTPUT_DIR}/train.tok.en ${OUTPUT_DIR}/train.tok.de ${OUTPUT_DIR}/merged

@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SpecialSentRemover {
+public class SpecialSentRemoverENDE {
 
     public static boolean isNumber(String word) {
         try {
@@ -65,7 +65,7 @@ public class SpecialSentRemover {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 5) {
-            System.out.println("Usage: java SpecialSentRemover en de en_output de_output removed_to_file");
+            System.out.println("Usage: java SpecialSentRemoverENDE en de en_output de_output removed_to_file");
             return;
         }
         String enFile = args[0];
