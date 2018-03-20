@@ -26,6 +26,8 @@ echo "Writing to ${OUTPUT_DIR}. To change this, set the OUTPUT_DIR environment v
 
 OUTPUT_DIR_DATA="${OUTPUT_DIR}/data"
 mkdir -p $OUTPUT_DIR_DATA
+mkdir ${OUTPUT_DIR}/dev
+mkdir ${OUTPUT_DIR}/test
 
 echo "Downloading preprocessed data. This may take a while..."
 
@@ -77,6 +79,10 @@ ${REPO_DIR}/scripts/input-from-sgm.perl \
   < ${OUTPUT_DIR_DATA}/test/newstest2017-ende-ref.de.sgm \
   > ${OUTPUT_DIR_DATA}/test/newstest2017.ende.de
 
+cp ${OUTPUT_DIR_DATA}/dev/newstest2016-deen* ${OUTPUT_DIR}/dev/
+cp ${OUTPUT_DIR_DATA}/dev/newstest2016-ende* ${OUTPUT_DIR}/dev/
+cp ${OUTPUT_DIR_DATA}/test/newstest2017-deen* ${OUTPUT_DIR}/test/
+cp ${OUTPUT_DIR_DATA}/test/newstest2017-ende* ${OUTPUT_DIR}/test/
 
 # tokenize
 echo "Tokenize..."
